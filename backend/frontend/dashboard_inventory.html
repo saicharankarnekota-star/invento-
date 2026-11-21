@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Lead Dashboard - INVENTO AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    {% if session.get('role') == 'admin' %}
+    <!-- Role Switcher Bar (Available for Admin) -->
+    <div class="role-switcher-bar">
+        <div class="role-switcher-title">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Previewing Role View:</span>
+        </div>
+        <div class="role-switcher-links">
+            <a href="{{ url_for('dashboard', role_view='admin') }}" class="role-pill-btn">
+                <i class="fa-solid fa-crown"></i> Executive Admin View
+            </a>
+            <a href="{{ url_for('dashboard', role_view='inventory_manager') }}" class="role-pill-btn active">
+                <i class="fa-solid fa-boxes-stacked"></i> Inventory Lead (Current)
+            </a>
+            <a href="{{ url_for('dashboard', role_view='cashier') }}" class="role-pill-btn">
+                <i class="fa-solid fa-cash-register"></i> Cashier Shift View
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span class="role-badge role-badge-inventory"><i class="fa-solid fa-boxes-stacked"></i> Stock Operations</span>
+                <span class="badge badge-light">Logged in as {{ session.get('user') }}</span>
+            </div>
+            <h1 class="page-title"><i class="fa-solid fa-boxes-packing"></i> Shelf & Stock Operations</h1>
+            <p class="page-subtitle">Shelf detection status, replenishment priorities, waste mitigation & reorder thresholds</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('scan') }}" class="btn btn-primary">
+                <i class="fa-solid fa-camera"></i> AI Shelf Scan
+            </a>
+            <a href="{{ url_for('add_product') }}" class="btn btn-outline">
+                <i class="fa-solid fa-plus"></i> New Product
+            </a>
+            <a href="{{ url_for('alerts') }}" class="btn btn-danger">
+                <i class="fa-solid fa-triangle-exclamation"></i> Action Center
+            </a>
+        </div>
+    </div>
+
+    <!-- Inventory KPIs -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Total Shelf Units</span>
+                <h3 class="stat-value">{{ total_stock }}</h3>
+                <span class="stat-meta">{{ total_products }} catalog varieties</span>
+            </div>
+        </div>
+
+        <div class="stat-card {% if out_of_stock_count > 0 %}stat-alert{% endif %}">
+            <div class="stat-icon icon-red">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Out of Stock</span>
+                <h3 class="stat-value">{{ out_of_stock_count }}</h3>
+                <span class="stat-meta">Immediate replenishment needed</span>
+            </div>
+        </div>
+
+        <div class="stat-card {% if low_stock_count > 0 %}stat-alert{% endif %}">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Low Stock Threshold</span>
+                <h3 class="stat-value">{{ low_stock_count }}</h3>
+                <span class="stat-meta">Below reorder safety level</span>
+            </div>
+        </div>
+
+        <div class="stat-card {% if expiring_soon_count > 0 or expired_count > 0 %}stat-alert{% endif %}">
+            <div class="stat-icon icon-purple">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Expiry Risk (7 Days)</span>
+                <h3 class="stat-value">{{ expiring_soon_count + expired_count }}</h3>
+                <span class="stat-meta">{{ expired_count }} already expired</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Shelf Vision Scanner Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #0B5D54 0%, #063C36 100%); color: #fff; margin-bottom: 24px;">
+        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding: 28px;">
+            <div>
+                <span style="background: rgba(245,179,1,0.2); color: var(--amber); padding: 4px 12px; border-radius: 99px; font-size: 13px; font-weight: 700; text-transform: uppercase;">Computer Vision Engine</span>
+                <h2 style="font-size: 26px; margin: 10px 0 6px; color: #fff;">Automated AI Shelf Stock Auditing</h2>
+                <p style="color: #D1E7E3; max-width: 60ch; font-size: 14.5px;">Point your camera at retail shelves or upload photos. The YOLOv8 + OpenCV engine automatically counts items, identifies brands, and synchronizes stock numbers directly into Supabase.</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{{ url_for('scan') }}" class="btn" style="background: var(--amber); color: var(--nav); font-weight: 800; padding: 14px 24px; font-size: 15px;">
+                    <i class="fa-solid fa-camera-retro"></i> Launch Scanner
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Operational Sections Grid -->
+    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Shelf Replenishment & Reorder Priority List -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-truck-ramp-box"></i> Replenishment Priority List</h3>
+                <span class="badge badge-danger">{{ restock_needs|length }} Items</span>
+            </div>
+            <div class="card-body">
+                {% if restock_needs %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Stock / Min</th>
+                                <th>Suggested</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in restock_needs %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item['name'] }}</strong>
+                                    <div style="font-size: 12px; color: var(--ink-3);">{{ item['category'] }}</div>
+                                </td>
+                                <td>
+                                    <span style="color: var(--red); font-weight: 700;">{{ item['quantity'] }}</span> / {{ item['reorder_level'] }}
+                                </td>
+                                <td>+{{ item['recommended_reorder'] }} units</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('restock_product', product_id=item['id']) }}" style="display: inline;">
+                                        <input type="hidden" name="quantity" value="10">
+                                        <button type="submit" class="btn btn-outline" style="padding: 5px 10px; font-size: 12.5px;">
+                                            <i class="fa-solid fa-plus"></i> +10
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="padding: 18px 0; text-align: center;">All items are currently above safety reorder thresholds!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 7-Day Expiry & Waste Prevention -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Expiry & Waste Prevention</h3>
+                <span class="badge badge-warning">{{ expiry_risk_items|length }} Watchlist</span>
+            </div>
+            <div class="card-body">
+                {% if expiry_risk_items %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Stock</th>
+                                <th>Expiry Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in expiry_risk_items %}
+                            {% set exp = item['expiry_date']|expiry_info %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item['name'] }}</strong>
+                                    <div style="font-size: 12px; color: var(--ink-3);">{{ item['expiry_date'] }}</div>
+                                </td>
+                                <td>{{ item['quantity'] }} units</td>
+                                <td>
+                                    <span class="badge {{ exp.badge }}">{{ exp.label }}</span>
+                                </td>
+                                <td>
+                                    {% if exp.status == 'expired' %}
+                                    <form method="POST" action="{{ url_for('dispose_product', product_id=item['id']) }}" style="display: inline;" onsubmit="return confirm('Clear expired shelf stock for {{ item['name'] }}?');">
+                                        <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;">
+                                            <i class="fa-solid fa-trash-can"></i> Dispose
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{{ url_for('billing') }}" class="btn btn-outline" style="padding: 5px 10px; font-size: 12px;" title="Promote in POS">
+                                        Sell First
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="padding: 18px 0; text-align: center;">No products nearing expiration within the next 7 days.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Shelf Scans -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-camera"></i> Recent Computer Vision Shelf Audits</h3>
+            <a href="{{ url_for('scan') }}" class="view-all-link">New Scan &rarr;</a>
+        </div>
+        <div class="card-body">
+            {% if recent_scans %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Scan ID</th>
+                            <th>Timestamp</th>
+                            <th>Total Objects Detected</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan in recent_scans %}
+                        <tr>
+                            <td>#{{ scan['id'] }}</td>
+                            <td>{{ scan['timestamp'] }}</td>
+                            <td><strong>{{ scan['total_items'] }}</strong> items detected</td>
+                            <td><span class="badge badge-success">Audited</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted" style="padding: 18px 0; text-align: center;">No shelf scans recorded yet. Upload a shelf photo to run the first audit!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

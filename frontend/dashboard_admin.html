@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Dashboard - INVENTO AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <!-- Role Switcher Bar (Executive Access) -->
+    <div class="role-switcher-bar">
+        <div class="role-switcher-title">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Role View Switcher:</span>
+        </div>
+        <div class="role-switcher-links">
+            <a href="{{ url_for('dashboard', role_view='admin') }}" class="role-pill-btn {% if active_role == 'admin' %}active{% endif %}">
+                <i class="fa-solid fa-crown"></i> Executive Admin
+            </a>
+            <a href="{{ url_for('dashboard', role_view='inventory_manager') }}" class="role-pill-btn {% if active_role == 'inventory_manager' %}active{% endif %}">
+                <i class="fa-solid fa-boxes-stacked"></i> Inventory Lead View
+            </a>
+            <a href="{{ url_for('dashboard', role_view='cashier') }}" class="role-pill-btn {% if active_role == 'cashier' %}active{% endif %}">
+                <i class="fa-solid fa-cash-register"></i> Cashier Shift View
+            </a>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="fa-solid fa-chart-line"></i> Executive Store & Inventory Overview
+            </h1>
+            <p class="page-subtitle">Real-time valuation, sales revenue, staff telemetry & cloud database health</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('reports') }}" class="btn btn-outline">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Valuation Reports
+            </a>
+            <a href="{{ url_for('add_product') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Add Product
+            </a>
+            <a href="{{ url_for('billing') }}" class="btn btn-success">
+                <i class="fa-solid fa-bolt"></i> Open POS
+            </a>
+        </div>
+    </div>
+
+    <!-- Cloud Database Status Bar -->
+    <div class="alert alert-info" style="margin-bottom: 24px;">
+        <div class="alert-content">
+            <i class="fa-solid fa-database"></i>
+            <span><strong>Cloud Database:</strong> Connected to Supabase PostgreSQL (<code>ezfneigycsbtgooijuiz</code>) &bull; 141 Active Catalog Products &bull; {{ staff_members|length }} Active Staff Members</span>
+        </div>
+    </div>
+
+    <!-- Metric Stat Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Total Products</span>
+                <h3 class="stat-value">{{ total_products }}</h3>
+                <span class="stat-meta">Active catalog items</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-green">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Inventory Valuation</span>
+                <h3 class="stat-value">₹{{ "{:,.2f}".format(total_valuation) }}</h3>
+                <span class="stat-meta">{{ total_stock }} total shelf units</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-cash-register"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Today's Store Sales</span>
+                <h3 class="stat-value">₹{{ "{:,.2f}".format(today_sales) }}</h3>
+                <span class="stat-meta">{{ today_bills }} bills generated today</span>
+            </div>
+        </div>
+
+        <div class="stat-card {% if low_stock_count > 0 %}stat-alert{% endif %}">
+            <div class="stat-icon icon-red">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Low Stock Alerts</span>
+                <h3 class="stat-value">{{ low_stock_count }}</h3>
+                <span class="stat-meta"><a href="{{ url_for('alerts') }}" class="text-danger">Review low items &rarr;</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment & Category Performance Grid -->
+    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Payment Methods Breakdown -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-wallet"></i> Today's Payment Collections</h3>
+            </div>
+            <div class="card-body">
+                {% set pb = payment_breakdown if (payment_breakdown is defined and payment_breakdown) else {} %}
+                <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+                    <div style="flex: 1; padding: 14px; background: var(--green-tint); border-radius: 10px; text-align: center;">
+                        <span style="font-size: 13px; color: var(--green); font-weight: 600;">Cash</span>
+                        <h4 style="font-size: 20px; margin-top: 4px; color: var(--green);">₹{{ "{:,.2f}".format(pb.get('Cash', 0.0) if pb is mapping else 0.0) }}</h4>
+                    </div>
+                    <div style="flex: 1; padding: 14px; background: var(--blue-tint); border-radius: 10px; text-align: center;">
+                        <span style="font-size: 13px; color: var(--blue); font-weight: 600;">UPI</span>
+                        <h4 style="font-size: 20px; margin-top: 4px; color: var(--blue);">₹{{ "{:,.2f}".format(pb.get('UPI', 0.0) if pb is mapping else 0.0) }}</h4>
+                    </div>
+                    <div style="flex: 1; padding: 14px; background: var(--purple-tint); border-radius: 10px; text-align: center;">
+                        <span style="font-size: 13px; color: var(--purple); font-weight: 600;">Card</span>
+                        <h4 style="font-size: 20px; margin-top: 4px; color: var(--purple);">₹{{ "{:,.2f}".format(pb.get('Card', 0.0) if pb is mapping else 0.0) }}</h4>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Products</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in categories_data[:6] %}
+                            <tr>
+                                <td><strong>{{ cat['category'] }}</strong></td>
+                                <td>{{ cat['count'] }}</td>
+                                <td>{{ cat['stock'] or 0 }} units</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Team & Staff Roster -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-users-gear"></i> Store Staff & Roles</h3>
+                <span class="badge badge-light">{{ staff_members|length }} Members</span>
+            </div>
+            <div class="card-body">
+                <div class="staff-card-grid" style="display: grid; gap: 12px;">
+                    {% for member in staff_members %}
+                    <div class="staff-card">
+                        <div class="staff-avatar">
+                            {% if member['role'] == 'admin' %}👑{% elif member['role'] == 'inventory_manager' %}📦{% else %}💳{% endif %}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 14.5px;">{{ member['name'] or member['username'] }}</div>
+                            <div style="font-size: 12.5px; color: var(--ink-3);">{{ member['email'] or member['username'] }}</div>
+                        </div>
+                        <div>
+                            {% if member['role'] == 'admin' %}
+                            <span class="role-badge role-badge-admin">Admin</span>
+                            {% elif member['role'] == 'inventory_manager' %}
+                            <span class="role-badge role-badge-inventory">Stock Lead</span>
+                            {% else %}
+                            <span class="role-badge role-badge-cashier">Cashier</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiry Alerts & Watchlist Section -->
+    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Product Expiry Watchlist -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Product Expiry Watchlist</h3>
+                <span class="badge badge-warning">Expiry Alerts</span>
+            </div>
+            <div class="card-body">
+                {% if expiring_items %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in expiring_items %}
+                            {% set exp = item['expiry_date']|expiry_info %}
+                            <tr>
+                                <td><strong>{{ item['name'] }}</strong></td>
+                                <td>{{ item['category'] }}</td>
+                                <td>{{ item['quantity'] }}</td>
+                                <td><span class="badge {{ exp.badge }}">{{ exp.label }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="padding: 18px 0; text-align: center;">No products nearing expiration within the next 7 days.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Store Bills -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-receipt"></i> Recent Store Transactions</h3>
+                <a href="{{ url_for('bills') }}" class="view-all-link">View All &rarr;</a>
+            </div>
+            <div class="card-body">
+                {% if recent_bills %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Bill #</th>
+                                <th>Customer</th>
+                                <th>Cashier</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in recent_bills %}
+                            <tr>
+                                <td><a href="{{ url_for('bill_detail', bill_id=b['id']) }}"><strong>{{ b['bill_no'] }}</strong></a></td>
+                                <td>{{ b['customer_name'] }}</td>
+                                <td><span class="badge badge-light">{{ b['cashier'] or 'Store' }}</span></td>
+                                <td><strong>₹{{ "{:,.2f}".format(b['total']) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="padding: 18px 0; text-align: center;">No transactions recorded today yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

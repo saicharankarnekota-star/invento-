@@ -1,0 +1,3 @@
+# Full local install: adds the YOLO object detector (downloads PyTorch, several GB - do NOT deploy this to Vercel)
+-r requirements.txt
+ultralytics>=8.0.0

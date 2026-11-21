@@ -1,0 +1,15 @@
+{
+  "name": "invento-ai-frontend",
+  "version": "1.0.0",
+  "description": "INVENTO AI Frontend presentation tier with Supabase integration",
+  "main": "js/script.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve . -p 3000",
+    "dev": "npx serve . -p 3000"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.1"
+  }
+}

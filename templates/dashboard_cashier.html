@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Cashier Shift Dashboard - INVENTO AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    {% if session.get('role') == 'admin' %}
+    <!-- Role Switcher Bar (Available for Admin) -->
+    <div class="role-switcher-bar">
+        <div class="role-switcher-title">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Previewing Role View:</span>
+        </div>
+        <div class="role-switcher-links">
+            <a href="{{ url_for('dashboard', role_view='admin') }}" class="role-pill-btn">
+                <i class="fa-solid fa-crown"></i> Executive Admin View
+            </a>
+            <a href="{{ url_for('dashboard', role_view='inventory_manager') }}" class="role-pill-btn">
+                <i class="fa-solid fa-boxes-stacked"></i> Inventory Lead View
+            </a>
+            <a href="{{ url_for('dashboard', role_view='cashier') }}" class="role-pill-btn active">
+                <i class="fa-solid fa-cash-register"></i> Cashier Shift (Current)
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span class="role-badge role-badge-cashier"><i class="fa-solid fa-cash-register"></i> POS Frontline</span>
+                <span class="badge badge-light">Cashier: {{ session.get('user') }}</span>
+            </div>
+            <h1 class="page-title"><i class="fa-solid fa-cash-register"></i> Frontline Billing & Shift Desk</h1>
+            <p class="page-subtitle">Fast barcode lookup, live cart operations, UPI payment collections & shift totals</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('billing') }}" class="pos-hero-btn">
+                <i class="fa-solid fa-bolt"></i> OPEN POS TERMINAL
+            </a>
+        </div>
+    </div>
+
+    <!-- Cashier Shift KPIs -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon icon-green">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">My Bills Today</span>
+                <h3 class="stat-value">{{ shift_data['total_bills'] }}</h3>
+                <span class="stat-meta">Completed checkout orders</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">My Total Sales</span>
+                <h3 class="stat-value">₹{{ "{:,.2f}".format(shift_data['total_sales']) }}</h3>
+                <span class="stat-meta">Today's collected revenue</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-purple">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Average Bill Size</span>
+                <h3 class="stat-value">₹{{ "{:,.2f}".format(shift_data['avg_bill']) }}</h3>
+                <span class="stat-meta">Per completed transaction</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-cart-shopping"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Active Cart Items</span>
+                <h3 class="stat-value">{{ cart_count }}</h3>
+                <span class="stat-meta"><a href="{{ url_for('billing') }}">Resume order &rarr;</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instant Barcode & Price Lookup Card -->
+    <div class="lookup-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="font-size: 19px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-barcode text-primary"></i> Fast Barcode & Price Checker
+                </h3>
+                <p style="font-size: 13.5px; color: var(--ink-2); margin-top: 2px;">Scan with barcode gun or type product name/code to verify shelf prices instantly.</p>
+            </div>
+            <span class="badge badge-light"><i class="fa-solid fa-keyboard"></i> Type to filter instantly</span>
+        </div>
+
+        <div class="search-box" style="margin-bottom: 0;">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="cashierLookupInput" class="form-control" placeholder="Scan barcode or type item (e.g. 2000000000015, Coca Cola, Soap)..." autofocus>
+        </div>
+
+        <div class="lookup-results" id="cashierLookupResults">
+            {% for p in products[:12] %}
+            <div class="lookup-item" data-name="{{ p['name']|lower }}" data-barcode="{{ p['barcode']|lower }}" data-category="{{ p['category']|lower }}">
+                <img src="{% if p['image'] %}{{ url_for('static', filename=p['image']) }}{% else %}{{ url_for('static', filename='img/products/apple.svg') }}{% endif %}" class="lookup-img" alt="{{ p['name'] }}">
+                <div style="flex: 1; min-width: 0;">
+                    <strong style="display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p['name'] }}</strong>
+                    <div style="font-size: 12px; color: var(--ink-3);">Code: <code>{{ p['barcode'] or 'N/A' }}</code> &bull; {{ p['category'] }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 800; font-size: 15px; color: var(--brand);">₹{{ "{:,.2f}".format(p['price']) }}</div>
+                    <div style="font-size: 11.5px; color: {% if p['quantity'] > 0 %}var(--green){% else %}var(--red){% endif %}; font-weight: 600;">
+                        {% if p['quantity'] > 0 %}{{ p['quantity'] }} in stock{% else %}Out of stock{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Shift Financials & My Recent Bills Grid -->
+    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Shift Cash Balancing Breakdown -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-scale-balanced"></i> Shift Cash Balancing</h3>
+                <span class="badge badge-light">Today's Collections</span>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; gap: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--green-tint); border-radius: 10px;">
+                        <span style="font-weight: 600; color: #14532F;"><i class="fa-solid fa-money-bill-wave"></i> Cash in Drawer</span>
+                        <strong style="font-size: 18px; color: #14532F;">₹{{ "{:,.2f}".format(shift_data['breakdown'].get('Cash', 0.0)) }}</strong>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--blue-tint); border-radius: 10px;">
+                        <span style="font-weight: 600; color: #144B6B;"><i class="fa-solid fa-qrcode"></i> UPI Payments</span>
+                        <strong style="font-size: 18px; color: #144B6B;">₹{{ "{:,.2f}".format(shift_data['breakdown'].get('UPI', 0.0)) }}</strong>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--purple-tint); border-radius: 10px;">
+                        <span style="font-weight: 600; color: #6A4FB3;"><i class="fa-solid fa-credit-card"></i> Card Swipes</span>
+                        <strong style="font-size: 18px; color: #6A4FB3;">₹{{ "{:,.2f}".format(shift_data['breakdown'].get('Card', 0.0)) }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift Bills & Receipts -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-receipt"></i> Recent Orders / Receipts</h3>
+                <a href="{{ url_for('bills') }}" class="view-all-link">All Bills &rarr;</a>
+            </div>
+            <div class="card-body">
+                {% if recent_bills %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Bill #</th>
+                                <th>Customer</th>
+                                <th>Total</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in recent_bills[:6] %}
+                            <tr>
+                                <td><strong>{{ b['bill_no'] }}</strong></td>
+                                <td>{{ b['customer_name'] }}</td>
+                                <td><strong>₹{{ "{:,.2f}".format(b['total']) }}</strong></td>
+                                <td>
+                                    <a href="{{ url_for('bill_detail', bill_id=b['id']) }}" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;" target="_blank">
+                                        <i class="fa-solid fa-print"></i> Receipt
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="padding: 18px 0; text-align: center;">No orders completed yet this shift.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Fast Client-Side Barcode & Product Filter for Cashier Desk
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('cashierLookupInput');
+    const container = document.getElementById('cashierLookupResults');
+    if (!input || !container) return;
+
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const items = container.querySelectorAll('.lookup-item');
+        items.forEach(el => {
+            const name = el.getAttribute('data-name') || '';
+            const bc = el.getAttribute('data-barcode') || '';
+            const cat = el.getAttribute('data-category') || '';
+            if (!query || name.includes(query) || bc.includes(query) || cat.includes(query)) {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
