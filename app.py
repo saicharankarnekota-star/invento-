@@ -4,7 +4,10 @@ Delegates to backend/app.py to run the full stack server.
 import sys
 import os
 import socket
-from werkzeug.serving import WSGIRequestHandler
+try:
+    from werkzeug.serving import WSGIRequestHandler
+except ImportError:
+    from http.server import BaseHTTPRequestHandler as WSGIRequestHandler
 
 class FriendlyWSGIRequestHandler(WSGIRequestHandler):
     """Intercepts TLS/HTTPS handshakes on plain HTTP dev ports with a friendly explanation."""

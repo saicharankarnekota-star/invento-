@@ -22,7 +22,10 @@ import json
 import socket
 from datetime import datetime
 from flask import Flask, session, send_from_directory, redirect, url_for
-from werkzeug.serving import WSGIRequestHandler
+try:
+    from werkzeug.serving import WSGIRequestHandler
+except ImportError:
+    from http.server import BaseHTTPRequestHandler as WSGIRequestHandler
 import backend.config as config
 from backend.services.db import init_db
 from backend.routes.utils import get_expiry_info
@@ -162,6 +165,11 @@ def find_free_port(preferred_port=5001):
             except OSError:
                 continue
     return preferred_port
+
+try:
+    from werkzeug.serving import WSGIRequestHandler
+except ImportError:
+    from http.server import BaseHTTPRequestHandler as WSGIRequestHandler
 
 class FriendlyWSGIRequestHandler(WSGIRequestHandler):
     """Intercepts TLS/HTTPS handshakes on plain HTTP dev ports with a friendly explanation."""
