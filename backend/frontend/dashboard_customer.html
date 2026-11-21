@@ -57,7 +57,7 @@
                     <p style="font-size: 17px; font-weight: 700; color: var(--primary); margin: 4px 0;">₹{{ "%.2f"|format(p.price) }}</p>
                 </div>
                 <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size: 12px; color: {% if p.quantity > 5 %}#059669{% else %}#d97706{% endif %}; font-weight: 600;">
+                    <span class="{% if p.quantity > 5 %}text-success{% else %}text-warning{% endif %}" style="font-size: 12px; font-weight: 600;">
                         <i class="fa-solid fa-circle-check"></i> {{ p.quantity }} in stock
                     </span>
                     <form method="POST" action="{{ url_for('cart_add', product_id=p.id) }}" style="margin:0;">
