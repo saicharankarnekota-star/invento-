@@ -25,32 +25,32 @@
             </a>
 
             <div class="nav-menu" id="navMenu">
-                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
-                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint in ('dashboard', 'inventory.dashboard') %}active{% endif %}">
+                    <i class="fa-solid {% if session.get('role') == 'customer' %}fa-store{% else %}fa-chart-pie{% endif %}"></i> {% if session.get('role') == 'customer' %}Store{% else %}Dashboard{% endif %}
                 </a>
-                {% if session.get('role') in ('admin', 'inventory_manager') or not session.get('role') %}
-                <a href="{{ url_for('products') }}" class="nav-link {% if 'product' in request.endpoint %}active{% endif %}">
+                {% if session.get('role') in ('admin', 'inventory_manager', 'customer') or not session.get('role') %}
+                <a href="{{ url_for('products') }}" class="nav-link {% if 'product' in (request.endpoint or '') %}active{% endif %}">
                     <i class="fa-solid fa-boxes-packing"></i> Products
                 </a>
                 {% endif %}
-                {% if session.get('role') in ('admin', 'cashier', 'staff') or not session.get('role') %}
-                <a href="{{ url_for('billing') }}" class="nav-link {% if request.endpoint == 'billing' %}active{% endif %}">
-                    <i class="fa-solid fa-cart-shopping"></i> Billing{% if cart_count %}<span class="cart-count">{{ cart_count }}</span>{% endif %}
+                {% if session.get('role') in ('admin', 'cashier', 'staff', 'customer') or not session.get('role') %}
+                <a href="{{ url_for('billing') }}" class="nav-link {% if request.endpoint in ('billing', 'billing.billing') %}active{% endif %}">
+                    <i class="fa-solid fa-cart-shopping"></i> {% if session.get('role') == 'customer' %}My Cart{% else %}Billing{% endif %}{% if cart_count %}<span class="cart-count">{{ cart_count }}</span>{% endif %}
                 </a>
-                <a href="{{ url_for('bills') }}" class="nav-link {% if request.endpoint in ('bills', 'bill_detail') %}active{% endif %}">
-                    <i class="fa-solid fa-receipt"></i> Bills
+                <a href="{{ url_for('bills') }}" class="nav-link {% if request.endpoint in ('bills', 'billing.bills', 'bill_detail', 'billing.bill_detail') %}active{% endif %}">
+                    <i class="fa-solid fa-receipt"></i> {% if session.get('role') == 'customer' %}My Orders{% else %}Bills{% endif %}
                 </a>
                 {% endif %}
                 {% if session.get('role') in ('admin', 'inventory_manager') or not session.get('role') %}
-                <a href="{{ url_for('scan') }}" class="nav-link {% if request.endpoint == 'scan' %}active{% endif %}">
+                <a href="{{ url_for('scan') }}" class="nav-link {% if request.endpoint in ('scan', 'scan.scan') %}active{% endif %}">
                     <i class="fa-solid fa-camera-retro"></i> AI Scan
                 </a>
-                <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}">
+                <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint in ('alerts', 'inventory.alerts') %}active{% endif %}">
                     <i class="fa-solid fa-triangle-exclamation"></i> Alerts
                 </a>
                 {% endif %}
                 {% if session.get('role') == 'admin' or not session.get('role') %}
-                <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+                <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint in ('reports', 'reports.reports') %}active{% endif %}">
                     <i class="fa-solid fa-file-invoice-dollar"></i> Reports
                 </a>
                 {% endif %}
@@ -66,6 +66,8 @@
                     <span class="role-badge role-badge-inventory">Stock Lead</span>
                     {% elif session.get('role') in ('cashier', 'staff') %}
                     <span class="role-badge role-badge-cashier">Cashier</span>
+                    {% elif session.get('role') == 'customer' %}
+                    <span class="role-badge role-badge-customer">Customer</span>
                     {% endif %}
                 </div>
                 <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout">

@@ -471,6 +471,7 @@ body{background:radial-gradient(900px 420px at 12% -8%,#FBFDFC 0%,transparent 65
 .role-badge-admin{background:var(--amber);color:var(--nav)}
 .role-badge-inventory{background:#2563EB;color:#fff}
 .role-badge-cashier{background:#059669;color:#fff}
+.role-badge-customer{background:#7C3AED;color:#fff}
 .role-switcher-bar{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px;flex-wrap:wrap}
 .role-switcher-title{font-size:13.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:8px}
 .role-switcher-links{display:flex;gap:8px;flex-wrap:wrap}

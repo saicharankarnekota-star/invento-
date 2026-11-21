@@ -42,6 +42,21 @@ class BillModel:
         return rows
 
     @staticmethod
+    def get_by_customer(customer_name="", email=None, limit=20):
+        conn = get_db()
+        sql = """
+            SELECT b.*,
+                   (SELECT group_concat(name || ' x ' || quantity, ', ') FROM bill_items WHERE bill_id = b.id) AS items_text,
+                   (SELECT COALESCE(SUM(quantity), 0) FROM bill_items WHERE bill_id = b.id) AS units
+            FROM bills b
+            WHERE b.customer_name LIKE ? OR b.customer_phone LIKE ?
+            ORDER BY b.id DESC LIMIT ?
+        """
+        rows = conn.execute(sql, (f"%{customer_name}%", f"%{email or customer_name}%", int(limit))).fetchall()
+        conn.close()
+        return rows
+
+    @staticmethod
     def get_metrics():
         conn = get_db()
         today = date.today().strftime("%Y-%m-%d")

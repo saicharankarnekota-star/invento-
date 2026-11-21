@@ -223,7 +223,8 @@ def init_db():
     seed_users = [
         ('admin', 'admin@invento.ai', 'admin123', 'admin', 'Store Administrator'),
         ('stock', 'stock@invento.ai', 'stock123', 'inventory_manager', 'Sarah Chen (Inventory Lead)'),
-        ('cashier', 'cashier@invento.ai', 'cashier123', 'cashier', 'Alex Rivera (Head Cashier)')
+        ('cashier', 'cashier@invento.ai', 'cashier123', 'cashier', 'Alex Rivera (Head Cashier)'),
+        ('customer', 'customer@invento.ai', 'customer123', 'customer', 'Rahul Verma (Customer)')
     ]
     for uname, uemail, upwd, urole, ufullname in seed_users:
         row = cursor.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()

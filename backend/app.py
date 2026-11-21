@@ -20,7 +20,7 @@ if "backend" not in sys.modules:
 
 import json
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, session, send_from_directory, redirect, url_for
 try:
     from werkzeug.serving import WSGIRequestHandler
@@ -92,6 +92,11 @@ def create_app():
     )
 
     app.secret_key = config.SECRET_KEY
+    app.config["SESSION_COOKIE_NAME"] = "invento_session"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_PATH"] = "/"
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
     app.config["UPLOAD_FOLDER"] = config.UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
 

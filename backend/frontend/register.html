@@ -21,6 +21,15 @@
                     <input type="email" id="email" name="email" class="form-control" value="{{ form_email }}" placeholder="you@example.com" required autocomplete="email">
                 </div>
                 <div class="form-group">
+                    <label for="role"><i class="fa-solid fa-id-badge"></i> Account Type</label>
+                    <select id="role" name="role" class="form-control" style="background:#fff; cursor:pointer;">
+                        <option value="customer" selected>Customer (Store Shopper & Order History)</option>
+                        <option value="cashier">Cashier (Billing & Checkout Counter)</option>
+                        <option value="inventory_manager">Stock Lead (Inventory Management)</option>
+                        <option value="admin">Store Administrator (Full Access)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
                     <input type="password" id="password" name="password" class="form-control" minlength="6" placeholder="At least 6 characters" required autocomplete="new-password">
                 </div>

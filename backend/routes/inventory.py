@@ -26,8 +26,24 @@ def dashboard():
     bill_stats = BillModel.get_metrics()
     staff_members = UserModel.get_all()
 
+    # 0. Customer Shopping & Store Dashboard
+    if active_role == "customer":
+        all_products = ProductModel.get_all()
+        categories = ProductModel.get_categories()
+        user_name = session.get("user") or ""
+        user_email = session.get("email") or ""
+        my_bills = BillModel.get_by_customer(user_name, user_email, limit=8)
+        return render_template(
+            "dashboard_customer.html",
+            active_role=active_role,
+            products=all_products[:24],
+            total_products=len(all_products),
+            categories=categories,
+            my_bills=my_bills
+        )
+
     # 1. Cashier Frontline Shift Dashboard
-    if active_role in ("cashier", "staff"):
+    elif active_role in ("cashier", "staff"):
         cashier_name = session.get("user")
         shift_data = BillModel.get_shift_metrics(cashier_name=cashier_name)
         all_products = ProductModel.get_all()

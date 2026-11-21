@@ -32,8 +32,8 @@ _load_env()
 
 ON_VERCEL = bool(os.environ.get("VERCEL"))
 
-# Secret Key
-SECRET_KEY = os.environ.get("INVENTO_SECRET_KEY") or secrets.token_hex(32)
+# Secret Key - fixed fallback ensures session cookies persist across Vercel serverless cold starts
+SECRET_KEY = os.environ.get("INVENTO_SECRET_KEY") or "invento-secure-app-key-8e47291a0c4f826d91e3"
 
 # Database Configuration: Supabase & SQLite fallback
 SUPABASE_URL = (os.environ.get("SUPABASE_URL") or os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or "").strip()

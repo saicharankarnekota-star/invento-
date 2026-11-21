@@ -54,6 +54,7 @@ def login():
                 authenticated = True
 
         if authenticated and user:
+            session.permanent = True
             session["user"] = user["name"] or user["username"]
             session["email"] = user["email"] or target_email
             session["role"] = user["role"]
@@ -90,15 +91,19 @@ def register():
         elif password != confirm:
             error = "Passwords do not match."
 
+        role = (request.form.get("role") or "").strip().lower()
+        if role not in ("customer", "cashier", "inventory_manager", "admin"):
+            role = "customer"
+
         if not error:
             existing = UserModel.get_by_identifier(email)
             if existing:
                 error = "An account with this email already exists. Sign in instead."
             else:
                 # 1. Register with Supabase Auth
-                sign_up_supabase(email, password, metadata={"name": name, "role": "cashier"})
+                sign_up_supabase(email, password, metadata={"name": name, "role": role})
                 # 2. Create in application database
-                UserModel.create(name=name, email=email, password=password, role="cashier")
+                UserModel.create(name=name, email=email, password=password, role=role)
 
         if error:
             flash(error, "danger")

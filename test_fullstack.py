@@ -119,6 +119,14 @@ def test_backend_and_database():
         assert b"Cashier" in res.data
         print("✅ Direct Login as Cashier (cashier@invento.ai) verified")
 
+        # Test Direct Customer Login
+        client.get("/logout")
+        client.post("/login", data={"email": "customer@invento.ai", "password": "customer123"}, follow_redirects=True)
+        res = client.get("/dashboard")
+        assert res.status_code == 200
+        assert b"Customer Store" in res.data or b"Customer" in res.data
+        print("✅ Direct Login as Customer (customer@invento.ai) verified with Customer Store view")
+
         # Re-login as admin for other route tests
         client.get("/logout")
         client.post("/login", data={"email": "admin@invento.ai", "password": "admin123"}, follow_redirects=True)

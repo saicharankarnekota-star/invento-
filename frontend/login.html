@@ -23,10 +23,36 @@
                 <button type="submit" class="btn btn-primary btn-block"><span>Sign in</span> <i class="fa-solid fa-arrow-right"></i></button>
             </form>
             <p class="auth-switch">New here? <a href="{{ url_for('register') }}">Create an account</a></p>
-            <div class="auth-demo-hint">
-                <i class="fa-solid fa-key"></i>
-                <span>Demo login: <code>admin@invento.ai</code> / <code>admin123</code></span>
+            <div class="auth-demo-hint" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px;">
+                <div style="font-weight:600; font-size:12.5px; color:var(--ink-2); display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-key"></i> Quick Demo Accounts (click to fill):
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; width:100%;">
+                    <button type="button" class="btn btn-outline" style="font-size:11.5px; padding:4px 9px; border-radius:6px;" onclick="fillLogin('customer@invento.ai', 'customer123')">
+                        <i class="fa-solid fa-bag-shopping"></i> Customer
+                    </button>
+                    <button type="button" class="btn btn-outline" style="font-size:11.5px; padding:4px 9px; border-radius:6px;" onclick="fillLogin('cashier@invento.ai', 'cashier123')">
+                        <i class="fa-solid fa-cash-register"></i> Cashier
+                    </button>
+                    <button type="button" class="btn btn-outline" style="font-size:11.5px; padding:4px 9px; border-radius:6px;" onclick="fillLogin('stock@invento.ai', 'stock123')">
+                        <i class="fa-solid fa-warehouse"></i> Stock Lead
+                    </button>
+                    <button type="button" class="btn btn-outline" style="font-size:11.5px; padding:4px 9px; border-radius:6px;" onclick="fillLogin('admin@invento.ai', 'admin123')">
+                        <i class="fa-solid fa-shield-halved"></i> Admin
+                    </button>
+                </div>
             </div>
+            <script>
+            function fillLogin(email, pass) {
+                var emailInput = document.getElementById('email');
+                var passInput = document.getElementById('password');
+                if (emailInput && passInput) {
+                    emailInput.value = email;
+                    passInput.value = pass;
+                    emailInput.focus();
+                }
+            }
+            </script>
         </div>
     </section>
 </div>

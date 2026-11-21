@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Store Portal - INVENTO AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Customer Welcome Hero -->
+    <div class="welcome-banner" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%); color: #fff; padding: 28px; border-radius: 14px; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(6, 78, 59, 0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div>
+                <span class="badge" style="background:rgba(255,255,255,0.2); color:#fff; font-size:12px; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Customer Store</span>
+                <h1 style="font-size: 26px; font-weight: 700; margin: 8px 0 4px 0; color:#fff;">Welcome to INVENTO Store, {{ session.get('user') }}! 👋</h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 14px;">Browse fresh groceries, real-time inventory, and enjoy fast digital checkout.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="{{ url_for('billing') }}" class="btn" style="background: #fbbf24; color: #78350f; font-weight: 700; padding: 10px 18px; border-radius: 8px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-cart-shopping"></i> My Cart & Checkout
+                </a>
+                <a href="{{ url_for('products') }}" class="btn" style="background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; padding: 10px 18px; border-radius: 8px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,0.3);">
+                    <i class="fa-solid fa-boxes-stacked"></i> All Products ({{ total_products }})
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Category Filter Pills -->
+    <div style="margin-bottom: 24px;">
+        <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);"><i class="fa-solid fa-layer-group"></i> Shop by Category</h4>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{{ url_for('products') }}" class="btn btn-sm btn-outline active" style="border-radius:20px; font-size:13px; text-decoration:none;">All Categories ({{ total_products }})</a>
+            {% for cat in categories[:8] %}
+            <a href="{{ url_for('products') }}?category={{ cat }}" class="btn btn-sm btn-outline" style="border-radius:20px; font-size:13px; text-decoration:none;">{{ cat }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Featured Fresh Products Grid -->
+    <div style="margin-bottom: 32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h3 style="font-size: 19px; font-weight: 700; margin: 0;"><i class="fa-solid fa-basket-shopping text-success"></i> Fresh & In Stock Products</h3>
+            <a href="{{ url_for('products') }}" style="font-size: 13px; font-weight: 600; color: var(--primary); text-decoration:none;">View All Catalog &rarr;</a>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+            {% for p in products %}
+            <div class="card product-card" style="border: 1px solid var(--border); border-radius: 12px; padding: 14px; display:flex; flex-direction:column; justify-content:space-between; background:var(--bg-surface); transition: transform 0.15s, box-shadow 0.15s;">
+                <div>
+                    <div style="height: 120px; background: var(--bg-hover); border-radius: 8px; display:flex; align-items:center; justify-content:center; margin-bottom: 10px; overflow:hidden;">
+                        {% if p.image %}
+                        <img src="{{ url_for('static', filename=p.image) if not p.image.startswith('http') else p.image }}" alt="{{ p.name }}" style="max-height:100%; max-width:100%; object-fit:contain;">
+                        {% else %}
+                        <i class="fa-solid fa-box-open" style="font-size: 36px; opacity: 0.3;"></i>
+                        {% endif %}
+                    </div>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 11px; padding: 2px 8px; border-radius: 4px;">{{ p.category }}</span>
+                    <h4 style="font-size: 15px; font-weight: 600; margin: 6px 0 2px 0;">{{ p.name }}</h4>
+                    <p style="font-size: 17px; font-weight: 700; color: var(--primary); margin: 4px 0;">₹{{ "%.2f"|format(p.price) }}</p>
+                </div>
+                <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size: 12px; color: {% if p.quantity > 5 %}#059669{% else %}#d97706{% endif %}; font-weight: 600;">
+                        <i class="fa-solid fa-circle-check"></i> {{ p.quantity }} in stock
+                    </span>
+                    <form method="POST" action="{{ url_for('cart_add', product_id=p.id) }}" style="margin:0;">
+                        <button type="submit" class="btn btn-sm btn-primary" style="border-radius:6px; font-size:12px; padding:5px 10px; display:inline-flex; align-items:center; gap:4px;">
+                            <i class="fa-solid fa-cart-plus"></i> Add
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- My Recent Order History -->
+    {% if my_bills %}
+    <div class="card" style="border: 1px solid var(--border); border-radius: 12px; padding: 20px; background:var(--bg-surface); margin-bottom: 24px;">
+        <h3 style="font-size: 17px; font-weight: 700; margin: 0 0 16px 0;"><i class="fa-solid fa-receipt text-warning"></i> My Recent Purchases</h3>
+        <div class="table-responsive">
+            <table class="table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align:left; font-size:12px; color:var(--text-muted);">
+                        <th style="padding:8px;">BILL #</th>
+                        <th style="padding:8px;">DATE</th>
+                        <th style="padding:8px;">ITEMS</th>
+                        <th style="padding:8px;">PAYMENT</th>
+                        <th style="padding:8px;">TOTAL</th>
+                        <th style="padding:8px; text-align:right;">RECEIPT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in my_bills %}
+                    <tr style="border-bottom: 1px solid var(--border); font-size:13px;">
+                        <td style="padding:10px 8px; font-weight:600;">{{ b.bill_no }}</td>
+                        <td style="padding:10px 8px; color:var(--text-muted);">{{ b.created_at[:16] if b.created_at else '' }}</td>
+                        <td style="padding:10px 8px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ b.items_text or 'Items' }}</td>
+                        <td style="padding:10px 8px;"><span class="badge" style="background:var(--bg-hover); font-size:11px;">{{ b.payment_method }}</span></td>
+                        <td style="padding:10px 8px; font-weight:700; color:var(--primary);">₹{{ "%.2f"|format(b.total) }}</td>
+                        <td style="padding:10px 8px; text-align:right;">
+                            <a href="{{ url_for('bill_detail', bill_id=b.id) }}" class="btn btn-sm btn-outline" style="border-radius:4px; font-size:11px; text-decoration:none;">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
