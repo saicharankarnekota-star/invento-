@@ -57,6 +57,9 @@ def login():
                 user_role = user_meta.get("role") or "customer"
                 user_id = UserModel.create(name=user_name, email=target_email, password=password, role=user_role)
                 user = UserModel.get_by_id(user_id)
+            elif user and str(user["password"]).startswith("supabase_auth"):
+                UserModel.update_password(user["id"], password)
+                user = UserModel.get_by_id(user["id"])
 
         if authenticated and user:
             session.permanent = True
@@ -107,9 +110,34 @@ def register():
                 error = "An account with this email already exists. Sign in instead."
             else:
                 # 1. Register with Supabase Auth
-                sign_up_supabase(email, password, metadata={"name": name, "role": role})
-                # 2. Create in application database
-                UserModel.create(name=name, email=email, password=password, role=role)
+                auth_resp = sign_up_supabase(email, password, metadata={"name": name, "role": role})
+
+                # 2. Auto-confirm in auth.users if connected to Supabase PostgreSQL
+                try:
+                    from backend.services.db import get_db
+                    conn = get_db()
+                    if conn.is_postgres:
+                        conn.execute("UPDATE auth.users SET email_confirmed_at = NOW() WHERE lower(email) = ? AND email_confirmed_at IS NULL", (email,))
+                        conn.commit()
+                    conn.close()
+                except Exception as e:
+                    print(f"[Supabase Auth Notice] auto-confirm notice: {e}")
+
+                # 3. Create in application database
+                new_id = UserModel.create(name=name, email=email, password=password, role=role)
+
+                # 4. Instant session creation so user is logged in immediately
+                session.permanent = True
+                session["user"] = name
+                session["email"] = email
+                session["role"] = role
+                if auth_resp and getattr(auth_resp, "session", None) and getattr(auth_resp.session, "access_token", None):
+                    session["supabase_token"] = auth_resp.session.access_token
+                if auth_resp and getattr(auth_resp, "user", None):
+                    session["supabase_user_id"] = auth_resp.user.id
+
+                flash(f"Account created successfully! Welcome, {name}!", "success")
+                return redirect(url_for("inventory.dashboard"))
 
         if error:
             flash(error, "danger")

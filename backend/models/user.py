@@ -58,10 +58,24 @@ class UserModel:
         clean_pwd = (password or "").strip()
         clean_name = (name or "").strip()
         base_username = clean_email.split("@")[0] if "@" in clean_email else clean_email
+        pwd_hash = generate_password_hash(clean_pwd, method='pbkdf2:sha256') if clean_pwd else 'supabase_auth'
+
+        # Check if user with this email or username already exists; if so, update safely
+        existing = conn.execute("SELECT id FROM users WHERE lower(email) = ? OR lower(username) = ?",
+                                (clean_email, base_username)).fetchone()
+        if existing:
+            user_id = existing["id"] if isinstance(existing, dict) or hasattr(existing, '__getitem__') else existing[0]
+            conn.execute("UPDATE users SET password = ?, role = ?, email = ?, name = ? WHERE id = ?",
+                         (pwd_hash, role, clean_email, clean_name, user_id))
+            conn.commit()
+            conn.close()
+            return user_id
+
+        # Insert new record
         cur = conn.execute("""
             INSERT INTO users (username, password, role, email, name)
             VALUES (?, ?, ?, ?, ?)
-        """, (base_username, generate_password_hash(clean_pwd, method='pbkdf2:sha256'), role, clean_email, clean_name))
+        """, (base_username, pwd_hash, role, clean_email, clean_name))
         new_id = cur.lastrowid if hasattr(cur, 'lastrowid') else None
         conn.commit()
         conn.close()
