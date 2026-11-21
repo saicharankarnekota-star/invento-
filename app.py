@@ -3,6 +3,39 @@ Delegates to backend/app.py to run the full stack server.
 """
 import sys
 import os
+import socket
+from werkzeug.serving import WSGIRequestHandler
+
+class FriendlyWSGIRequestHandler(WSGIRequestHandler):
+    """Intercepts TLS/HTTPS handshakes on plain HTTP dev ports with a friendly explanation."""
+    def handle_one_request(self):
+        try:
+            peek = self.connection.recv(1, socket.MSG_PEEK)
+            if peek == b"\x16":
+                self.close_connection = True
+                port = getattr(self.server, "server_port", 5001)
+                print(f"\n[⚠️ Notice] HTTPS request received on plain HTTP port {port}.")
+                print(f"👉 Please open HTTP in your browser: http://127.0.0.1:{port}/\n")
+                try:
+                    msg = (
+                        f"HTTP/1.1 400 Bad Request\r\n"
+                        f"Content-Type: text/html; charset=utf-8\r\n"
+                        f"Connection: close\r\n\r\n"
+                        f"<!DOCTYPE html><html><head><title>Use HTTP</title></head>"
+                        f"<body style='font-family:sans-serif;padding:40px;text-align:center;'>"
+                        f"<h2>⚠️ Please use HTTP instead of HTTPS</h2>"
+                        f"<p>This local development server runs on plain HTTP.</p>"
+                        f"<p><a href='http://127.0.0.1:{port}/' style='font-size:20px;font-weight:bold;color:#16a34a;'>Click here to open http://127.0.0.1:{port}/</a></p>"
+                        f"</body></html>\r\n"
+                    )
+                    self.wfile.write(msg.encode("utf-8"))
+                    self.wfile.flush()
+                except Exception:
+                    pass
+                return
+        except Exception:
+            pass
+        return super().handle_one_request()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
@@ -42,5 +75,6 @@ if __name__ == "__main__":
     print("  📁 Frontend folder : frontend/")
     print("  📁 Backend folder  : backend/")
     print(f"  🌐 Running at      : http://127.0.0.1:{port}")
+    print(f"  ⚠️  NOTE           : Use HTTP, not HTTPS (http://127.0.0.1:{port})")
     print("=" * 65 + "\n")
-    app.run(host="127.0.0.1", port=port, debug=True)
+    app.run(host="127.0.0.1", port=port, debug=True, request_handler=FriendlyWSGIRequestHandler)
