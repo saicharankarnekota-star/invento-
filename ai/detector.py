@@ -17,7 +17,10 @@ for _k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
 os.environ.setdefault("YOLO_AUTOINSTALL", "False")
 os.environ.setdefault("YOLO_VERBOSE", "False")
 
-import cv2
+try:
+    import cv2
+except Exception as _cv_err:
+    cv2 = None
 import numpy as np
 
 try:
@@ -116,6 +119,9 @@ class ProductDetector:
 
     def _load(self):
         """Attempts to load custom or pre-trained YOLO if available; defaults cleanly to CV engine."""
+        if cv2 is None:
+            self.load_error = "OpenCV (cv2) is not available in this cloud runtime."
+            return False
         if self.model is not None:
             return True
         try:

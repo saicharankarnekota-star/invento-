@@ -11,6 +11,13 @@ if ROOT_DIR not in sys.path:
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
+if "backend" not in sys.modules:
+    import types
+    backend_pkg = types.ModuleType("backend")
+    backend_pkg.__path__ = [CURRENT_DIR]
+    backend_pkg.__file__ = os.path.join(CURRENT_DIR, "__init__.py")
+    sys.modules["backend"] = backend_pkg
+
 import json
 import socket
 from datetime import datetime
@@ -113,6 +120,18 @@ def create_app():
     @app.route("/uploads/<path:filename>")
     def serve_uploads(filename):
         return send_from_directory(config.UPLOAD_FOLDER, filename)
+
+    @app.route("/css/<path:filename>")
+    def serve_css(filename):
+        return send_from_directory(os.path.join(config.FRONTEND_DIR, "css"), filename)
+
+    @app.route("/js/<path:filename>")
+    def serve_js(filename):
+        return send_from_directory(os.path.join(config.FRONTEND_DIR, "js"), filename)
+
+    @app.route("/img/<path:filename>")
+    def serve_img(filename):
+        return send_from_directory(os.path.join(config.FRONTEND_DIR, "img"), filename)
 
     # Initialize DB tables & seed items
     with app.app_context():

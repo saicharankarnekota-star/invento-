@@ -1,7 +1,10 @@
 """Product recognition by local image features (SIFT + RANSAC).
 It looks for the same logo / text / pattern from a product's photo inside a shelf object, so a red can is no longer
 mistaken for another red can. A product is only named when many feature points agree geometrically."""
-import cv2
+try:
+    import cv2
+except Exception:
+    cv2 = None
 import numpy as np
 
 MIN_INLIERS = 25         # feature points that must agree before a product is named
@@ -15,7 +18,7 @@ _bf = None
 
 def _engine():
     global _sift, _bf
-    if _sift is None:
+    if _sift is None and cv2 is not None:
         _sift = cv2.SIFT_create(nfeatures=600)
         _bf = cv2.BFMatcher(cv2.NORM_L2)
     return _sift, _bf
