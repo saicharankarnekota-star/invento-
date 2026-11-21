@@ -44,6 +44,30 @@ def _parse_dt(value):
     except (TypeError, ValueError):
         return None
 
+class VercelPathMiddleware:
+    """WSGI middleware to ensure Vercel rewrites preserve original URL paths."""
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        path_info = environ.get("PATH_INFO", "")
+        matched_path = environ.get("HTTP_X_MATCHED_PATH") or environ.get("x-matched-path")
+        forwarded_uri = environ.get("HTTP_X_FORWARDED_URI") or environ.get("x-forwarded-uri")
+
+        # If Vercel rewrote the request to /api/index, restore the actual user-facing path
+        if path_info in ("/api/index", "/api", "/api/index.py"):
+            if matched_path and matched_path not in ("/api/index", "/api", "/api/index.py"):
+                environ["PATH_INFO"] = matched_path
+            elif forwarded_uri:
+                environ["PATH_INFO"] = forwarded_uri.split("?")[0]
+            else:
+                environ["PATH_INFO"] = "/"
+        elif matched_path and matched_path != path_info:
+            if not matched_path.startswith("/api/index") and not path_info.startswith(("/static", "/uploads", "/css", "/js", "/img")):
+                environ["PATH_INFO"] = matched_path
+
+        return self.wsgi_app(environ, start_response)
+
 def create_app():
     app = Flask(
         __name__,
@@ -135,6 +159,16 @@ def create_app():
     @app.route("/img/<path:filename>")
     def serve_img(filename):
         return send_from_directory(os.path.join(config.FRONTEND_DIR, "img"), filename)
+
+    # Vercel entrypoint fallback routes
+    @app.route("/api/index")
+    @app.route("/api/index.py")
+    @app.route("/api")
+    def vercel_entrypoint_fallback():
+        return redirect(url_for("auth.index"))
+
+    # Wrap WSGI app with Vercel path-restoring middleware
+    app.wsgi_app = VercelPathMiddleware(app.wsgi_app)
 
     # Initialize DB tables & seed items
     with app.app_context():
