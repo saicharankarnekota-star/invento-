@@ -18,26 +18,31 @@ def login():
         return redirect(url_for("inventory.dashboard"))
 
     if request.method == "POST":
-        identifier = (request.form.get("email") or request.form.get("username") or "").strip().lower()
-        password = request.form.get("password", "").strip()
+        raw_identifier = request.form.get("email") or request.form.get("username") or ""
+        identifier = raw_identifier.strip()
+        identifier_lower = identifier.lower()
+        password = request.form.get("password", "")
 
         authenticated = False
         supabase_token = None
         supabase_user_id = None
 
-        # Resolve email if username was provided
-        target_email = identifier
-        if "@" not in target_email:
-            user_db = UserModel.get_by_identifier(identifier)
-            if user_db:
-                try:
-                    target_email = user_db["email"] or f"{identifier}@invento.ai"
-                except Exception:
-                    target_email = f"{identifier}@invento.ai"
-            else:
-                target_email = f"{identifier}@invento.ai"
+        # 1. Match with database persona first (email, username, or name)
+        user = UserModel.get_by_identifier(identifier_lower)
 
-        # 1. Attempt Supabase Auth login
+        target_email = ""
+        if user and user["email"]:
+            target_email = user["email"]
+        elif "@" in identifier_lower:
+            target_email = identifier_lower
+        else:
+            target_email = f"{identifier_lower}@invento.ai"
+
+        # 2. Database password verification
+        if user and UserModel.verify_password(user["password"], password):
+            authenticated = True
+
+        # 3. Supabase Auth verification
         auth_resp = sign_in_supabase(target_email, password)
         if auth_resp and getattr(auth_resp, "user", None):
             authenticated = True
@@ -45,13 +50,13 @@ def login():
             if getattr(auth_resp, "session", None) and getattr(auth_resp.session, "access_token", None):
                 supabase_token = auth_resp.session.access_token
 
-        # 2. Match with local/database persona
-        user = UserModel.get_by_identifier(target_email) or UserModel.get_by_identifier(identifier)
-
-        # 3. Fallback verification if Supabase Auth network call was not used or failed
-        if not authenticated and user:
-            if UserModel.verify_password(user["password"], password):
-                authenticated = True
+            # Auto-provision user in DB if registered via Supabase Auth
+            if not user:
+                user_meta = getattr(auth_resp.user, "user_metadata", {}) or {}
+                user_name = user_meta.get("name") or identifier.split("@")[0]
+                user_role = user_meta.get("role") or "customer"
+                user_id = UserModel.create(name=user_name, email=target_email, password=password, role=user_role)
+                user = UserModel.get_by_id(user_id)
 
         if authenticated and user:
             session.permanent = True
@@ -67,8 +72,9 @@ def login():
             return redirect(url_for("inventory.dashboard"))
 
         flash("Invalid email or password. Please try again.", "danger")
+        return render_template("login.html", form_email=raw_identifier)
 
-    return render_template("login.html")
+    return render_template("login.html", form_email="")
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():

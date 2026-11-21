@@ -108,9 +108,32 @@ def init_db():
     config.ensure_directories()
     conn = get_db()
     
-    # If connected to Supabase PostgreSQL, tables and seed data are already pushed!
+    # If connected to Supabase PostgreSQL, ensure core role users have verified hashes
     if conn.is_postgres:
         print("[DB] Connected to Supabase PostgreSQL cloud instance.")
+        seed_users = [
+            ('admin', 'admin@invento.ai', 'admin123', 'admin', 'Store Administrator'),
+            ('stock', 'stock@invento.ai', 'stock123', 'inventory_manager', 'Sarah Chen (Inventory Lead)'),
+            ('cashier', 'cashier@invento.ai', 'cashier123', 'cashier', 'Alex Rivera (Head Cashier)'),
+            ('customer', 'customer@invento.ai', 'customer123', 'customer', 'Rahul Verma (Customer)')
+        ]
+        try:
+            cur = conn.cursor()
+            for uname, uemail, upwd, urole, ufullname in seed_users:
+                pwd_hash = generate_password_hash(upwd, method='pbkdf2:sha256')
+                cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (uname, uemail))
+                row = cur.fetchone()
+                if not row:
+                    cur.execute("INSERT INTO users (username, password, role, email, name) VALUES (%s, %s, %s, %s, %s)",
+                                (uname, pwd_hash, urole, uemail, ufullname))
+                else:
+                    user_id = row["id"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+                    cur.execute("UPDATE users SET password = %s, email = %s, name = %s, role = %s WHERE id = %s",
+                                (pwd_hash, uemail, ufullname, urole, user_id))
+            conn.commit()
+        except Exception as e:
+            print(f"[DB Notice] Supabase user seed sync notice: {e}")
+            conn.rollback()
         conn.close()
         return
 
@@ -227,13 +250,14 @@ def init_db():
         ('customer', 'customer@invento.ai', 'customer123', 'customer', 'Rahul Verma (Customer)')
     ]
     for uname, uemail, upwd, urole, ufullname in seed_users:
-        row = cursor.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()
+        row = cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (uname, uemail)).fetchone()
+        pwd_hash = generate_password_hash(upwd, method='pbkdf2:sha256')
         if not row:
             cursor.execute("INSERT INTO users (username, password, role, email, name) VALUES (?, ?, ?, ?, ?)",
-                           (uname, generate_password_hash(upwd, method='pbkdf2:sha256'), urole, uemail, ufullname))
+                           (uname, pwd_hash, urole, uemail, ufullname))
         else:
-            cursor.execute("UPDATE users SET email = COALESCE(email, ?), name = COALESCE(name, ?), role = ? WHERE id = ?",
-                           (uemail, ufullname, urole, row["id"]))
+            cursor.execute("UPDATE users SET password = ?, email = ?, name = ?, role = ? WHERE id = ?",
+                           (pwd_hash, uemail, ufullname, urole, row["id"]))
 
     # Seed initial sample products if table is empty
     cursor.execute("SELECT COUNT(*) FROM products")
