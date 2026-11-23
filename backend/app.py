@@ -259,6 +259,17 @@ class FriendlyWSGIRequestHandler(WSGIRequestHandler):
         return super().handle_one_request()
 
 if __name__ == "__main__":
+    import signal
+    def _sig_handler(sig, frame):
+        print("\n🛑 INVENTO Server stopped. Goodbye!\n")
+        sys.exit(0)
+
+    try:
+        signal.signal(signal.SIGINT, _sig_handler)
+        signal.signal(signal.SIGTERM, _sig_handler)
+    except Exception:
+        pass
+
     port = find_free_port(5000)
     print("\n" + "=" * 65)
     print(f"  🚀 INVENTO AI Full Stack Application running on http://127.0.0.1:{port}")
@@ -266,5 +277,10 @@ if __name__ == "__main__":
     print("  📁 Backend folder  : backend/")
     print("  🗄️ Database        : Supabase Cloud PostgreSQL")
     print(f"  ⚠️  NOTE           : Use HTTP, not HTTPS (http://127.0.0.1:{port})")
+    print("  🛑 To stop server  : Press physical keys [Control + C] or type 'stop'")
     print("=" * 65 + "\n")
-    app.run(host="127.0.0.1", port=port, debug=True, request_handler=FriendlyWSGIRequestHandler)
+    try:
+        app.run(host="127.0.0.1", port=port, debug=True, request_handler=FriendlyWSGIRequestHandler)
+    except (KeyboardInterrupt, SystemExit):
+        print("\n🛑 INVENTO Server stopped. Goodbye!\n")
+        sys.exit(0)
